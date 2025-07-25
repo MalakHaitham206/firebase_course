@@ -163,9 +163,9 @@ export class TaskService {
     if (!this.currentUser) return;
     try {
       const tasksQuery = query(
-        collection(db, "task"),
+        collection(db, "tasks"),
         where("userId", "==", this.currentUser.uid),
-        limit(1),
+        limit(100),
         orderBy("createdAt", "desc")
       );
 
