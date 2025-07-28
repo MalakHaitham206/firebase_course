@@ -2,12 +2,12 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 import { auth, db } from "./firebase.js";
@@ -53,25 +53,36 @@ function setupAuthEventListeners() {
   // Reset password
   elements.resetPasswordLink.addEventListener("click", handlePasswordReset);
 }
-
-// Handle user registration
+function validateRegistrationInput(name, email, password) {
+  if (!name || !email || !password) {
+    ui.showMessage("Please fill in all fields correctly");
+    return false;
+  }
+  if (!email.indexOf("@")) {
+    return false;
+  }
+  if (password.length < 6) {
+    ui.showMessage("Password must be at least 6 characters");
+    return false;
+  }
+  return true;
+}
 async function handleRegister() {
   const name = elements.registerName.value.trim();
   const email = elements.registerEmail.value.trim();
   const password = elements.registerPassword.value;
-
-  if (!validateRegistrationInput(name, email, password)) {
+  if (!validateRegistrationInput) {
+    ui.showMessage("Please fill in all fields correctly");
     return;
   }
-
   ui.setButtonLoading(elements.registerBtn, "⏳ Creating account...");
-
   try {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
       password
     );
+
     await updateProfile(userCredential.user, { displayName: name });
     ui.showMessage(
       "Account created successfully! Welcome to Taskty! 🎉",
@@ -80,58 +91,54 @@ async function handleRegister() {
     ui.clearAuthInputs();
   } catch (error) {
     ui.showMessage(getErrorMessage(error));
+    ui.setButtonLoading(elements.registerBtn, "Create Account", false);
+    ui.clearAuthInputs();
   } finally {
-    ui.setButtonLoading(elements.registerBtn, "⏳ Creating account...", false);
+    ui.setButtonLoading(elements.registerBtn, "Create Account", false);
+    ui.clearAuthInputs();
   }
 }
 
-// Handle user login
 async function handleLogin() {
   const email = elements.loginEmail.value.trim();
   const password = elements.loginPassword.value;
-
   if (!email || !password) {
     ui.showMessage("Please enter email and password");
     return;
   }
-
   ui.setButtonLoading(elements.loginBtn, "⏳ Signing in...");
-
   try {
     await signInWithEmailAndPassword(auth, email, password);
+    ui.showMessage("Welcome back to Taskty! Let's get started! 🎉", "success");
     ui.clearAuthInputs();
-  } catch (error) {
+  } catch {
     ui.showMessage("Invalid email or password. Please try again.");
+    ui.setButtonLoading(elements.loginBtn, "Sign In", false);
     ui.clearAuthInputs();
   } finally {
-    ui.setButtonLoading(elements.loginBtn, "⏳ Signing in...", false);
+    ui.setButtonLoading(elements.loginBtn, "Sign In", false);
+    ui.clearAuthInputs();
   }
 }
 
-// Handle Google login
 async function handleGoogleLogin() {
-  if (currentUser) {
-    ui.showMessage("You are already signed in.");
-    return;
-  }
-
   ui.setButtonLoading(elements.googleLoginBtn, "⏳ Signing in with Google...");
-
   const provider = new GoogleAuthProvider();
-
   try {
-    await signInWithPopup(auth, provider);
-    ui.showMessage("Welcome to Taskty! Let's get started! 🎉", "success");
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
+    ui.showMessage(
+      `Welcome to Taskty, ${user.displayName || user.email.split("@")[0]}! 🎉`,
+      "success"
+    );
   } catch (error) {
     ui.showMessage(getErrorMessage(error));
+    ui.setButtonLoading(elements.googleLoginBtn, "Sign in with Google", false);
   } finally {
-    ui.setButtonLoading(
-      elements.googleLoginBtn,
-      "⏳ Signing in with Google...",
-      false
-    );
+    ui.setButtonLoading(elements.googleLoginBtn, "Sign in with Google", false);
   }
 }
+
 
 // Handle user logout
 async function handleLogout() {
@@ -164,21 +171,28 @@ async function handlePasswordReset() {
   }
 }
 
-// Validation functions
-function validateRegistrationInput(name, email, password) {
-  if (!name || !email || !password) {
-    ui.showMessage("Please fill in all fields");
-    return false;
-  }
+// Handle user login
+// async function handleLogin() {
+//   const email = elements.loginEmail.value.trim();
+//   const password = elements.loginPassword.value;
 
-  if (password.length < 6) {
-    ui.showMessage("Password must be at least 6 characters");
-    return false;
-  }
+//   if (!email || !password) {
+//     ui.showMessage("Please enter email and password");
+//     return;
+//   }
 
-  return true;
-}
+//   ui.setButtonLoading(elements.loginBtn, "⏳ Signing in...");
 
+//   try {
+//     await signInWithEmailAndPassword(auth, email, password);
+//     ui.clearAuthInputs();
+//   } catch (error) {
+//     ui.showMessage("Invalid email or password. Please try again.");
+//     ui.clearAuthInputs();
+//   } finally {
+//     ui.setButtonLoading(elements.loginBtn, "⏳ Signing in...", false);
+//   }
+// }
 // Error message mapping
 function getErrorMessage(error) {
   const errorMessages = {
